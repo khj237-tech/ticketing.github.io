@@ -1,0 +1,1494 @@
+<title>KIA 타이거즈 공식 챔피언스 티켓팅 & 멤버십 시뮬레이터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #0d090a;
+            color: #f1f5f9;
+            user-select: none;
+        }
+
+        .kia-red-glow {
+            box-shadow: 0 0 20px rgba(230, 0, 45, 0.4);
+        }
+
+        /* Pulse animation for available seats */
+        @keyframes seatGlow {
+            0% { transform: scale(1); box-shadow: 0 0 3px #e6002d; }
+            50% { transform: scale(1.15); box-shadow: 0 0 10px #ff4d6d; }
+            100% { transform: scale(1); box-shadow: 0 0 3px #e6002d; }
+        }
+
+        .seat-available {
+            animation: seatGlow 1s infinite ease-in-out;
+            cursor: pointer;
+        }
+
+        .seat-selected {
+            background-color: #10b981 !important;
+            box-shadow: 0 0 12px #10b981 !important;
+            transform: scale(1.15);
+            border: 2px solid #ffffff !important;
+            z-index: 10;
+        }
+
+        /* Premium member reserved seat styling */
+        .seat-member-occupied {
+            background-color: #3b0764 !important;
+            border: 1px solid #7e22ce !important;
+            opacity: 0.5;
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        .seat-sold {
+            background-color: #1e293b !important;
+            border: 1px solid #334155;
+            cursor: not-allowed;
+            opacity: 0.4;
+        }
+
+        /* Toss Bank Keypad Animation */
+        @keyframes tossSlideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .toss-modal-anim {
+            animation: tossSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Captcha distorted text styling */
+        .captcha-font {
+            font-family: 'Courier New', Courier, monospace;
+            background: repeating-linear-gradient(
+                45deg,
+                #0f172a,
+                #0f172a 10px,
+                #1e293b 10px,
+                #1e293b 20px
+            );
+            text-decoration: line-through;
+            font-style: italic;
+            letter-spacing: 0.35em;
+        }
+
+        .zone-hover {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+
+        .zone-hover:hover {
+            filter: brightness(1.4) drop-shadow(0 0 10px #e6002d);
+            stroke: #e6002d;
+            stroke-width: 3;
+        }
+
+        /* KakaoTalk Floating Top Notification Banner Animation */
+        @keyframes kakaoSlideDown {
+            0% { transform: translate(-50%, -120%); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        .kakao-notice-active {
+            animation: kakaoSlideDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-red-600 selection:text-white">
+
+    <!-- KakaoTalk Top GUI Notification Floating Banner -->
+    <div id="kakaotalk-notice" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-lg bg-[#FEE500] text-[#191919] p-4 rounded-2xl shadow-2xl border-2 border-[#e5cd00] transition-all">
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-[#3C1E1E] flex items-center justify-center shrink-0 shadow">
+                    <svg class="w-5 h-5 fill-[#FEE500]" viewBox="0 0 24 24">
+                        <path d="M12 3C6.477 3 2 6.477 2 10.767c0 2.766 1.84 5.187 4.606 6.574-.202.738-.732 2.684-.838 3.097-.132.518.19.512.398.374.164-.108 2.607-1.77 3.659-2.482.721.103 1.46.157 2.175.157 5.523 0 10-3.477 10-7.767S17.523 3 12 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-extrabold text-xs text-[#3C1E1E] bg-[#e2cc00] px-2 py-0.5 rounded">카카오톡 알림톡</span>
+                        <span class="text-[11px] text-[#554a00] font-medium" id="kakao-time">방금 전</span>
+                    </div>
+                    <h4 class="font-extrabold text-sm text-[#191919] mt-0.5">[기아 타이거즈] 예매 완료 알림</h4>
+                </div>
+            </div>
+            <button onclick="closeKakaoNotice()" class="text-[#3C1E1E] hover:opacity-75 font-bold text-lg px-2">✕</button>
+        </div>
+        <div class="mt-3 pt-2.5 border-t border-[#e2cc00]/80 text-xs sm:text-sm font-semibold text-[#292201] leading-relaxed" id="kakao-msg-body"></div>
+        <div class="mt-3 flex gap-2">
+            <button onclick="closeKakaoNotice()" class="flex-1 bg-[#3C1E1E] hover:bg-[#2a1515] text-[#FEE500] text-xs font-bold py-2 rounded-xl transition text-center">
+                확인 및 예매내역 확인
+            </button>
+        </div>
+    </div>
+
+    <!-- Header with KIA Tigers Portal Theme -->
+    <header class="w-full bg-[#120507] border-b border-red-900/40 sticky top-0 z-40 px-4 py-3 shadow-2xl">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-xl font-black text-white shadow-lg border border-red-400">
+                    🐅
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-black text-lg sm:text-xl text-white tracking-wide">KIA TIGERS <span class="text-red-500">TICKETING</span></h1>
+                        <span id="header-user-badge" class="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">일반 회원 (예매 10분 지연)</span>
+                    </div>
+                    <p class="text-xs text-slate-400">광주-기아 챔피언스 필드 공식 예매 & 멤버십 시뮬레이터</p>
+                </div>
+            </div>
+
+            <!-- Server Clock & User Account Management -->
+            <div class="flex items-center gap-3">
+                <!-- User Membership Upgrade Buttons -->
+                <button onclick="openKakaoAuthModal()" id="btn-kakao-auth" class="bg-[#FEE500] hover:bg-[#e6cf00] text-[#3C1E1E] px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow">
+                    <svg class="w-4 h-4 fill-[#3C1E1E]" viewBox="0 0 24 24"><path d="M12 3C6.477 3 2 6.477 2 10.767c0 2.766 1.84 5.187 4.606 6.574-.202.738-.732 2.684-.838 3.097-.132.518.19.512.398.374.164-.108 2.607-1.77 3.659-2.482.721.103 1.46.157 2.175.157 5.523 0 10-3.477 10-7.767S17.523 3 12 3z"/></svg>
+                    <span id="kakao-auth-status-text">카카오 본인인증</span>
+                </button>
+
+                <button onclick="openTossMembershipModal()" id="btn-toss-membership" class="bg-red-600 hover:bg-red-500 text-white font-black px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-lg border border-red-400 animate-pulse">
+                    <span>👑 토스뱅크 정기구독 (10분 조기예매)</span>
+                </button>
+
+                <!-- Server Clock (Navyism style) -->
+                <div class="bg-black/90 px-3.5 py-1.5 rounded-xl border border-red-500/40 text-center font-mono shadow-inner">
+                    <span class="text-[9px] text-red-400 font-bold block" id="clock-label">서버 시계 (일반: 10분 지연)</span>
+                    <span id="server-clock" class="text-lg font-black text-red-500 tracking-wider">13:49:55.00</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl w-full mx-auto p-4 flex-1 flex flex-col justify-center my-2">
+
+        <!-- STEP 0: Team Selection & Schedule Calendar -->
+        <div id="step-0" class="bg-[#160a0c] border border-red-950/80 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div class="border-b border-red-900/30 pb-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <div>
+                    <span class="bg-red-600/20 text-red-400 border border-red-500/30 text-xs font-bold px-3 py-1 rounded-full">KIA TIGERS HOME & AWAY MATCHES</span>
+                    <h2 class="text-2xl font-black text-white mt-2">🐯 기아 타이거즈 경기 일정 선택</h2>
+                    <p class="text-slate-400 text-sm mt-1">챔피언스 필드 홈경기 및 타이거즈 원정 매치를 선택하세요.</p>
+                </div>
+                
+                <!-- Difficulty Selector -->
+                <div class="bg-black/60 p-2.5 rounded-xl border border-red-900/40">
+                    <label class="text-xs text-slate-400 block mb-1 font-bold">🎯 티켓팅 난이도 설정</label>
+                    <select id="diff-select" class="bg-[#120507] border border-red-800 text-sm text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-red-500 font-bold">
+                        <option value="easy">🟢 연습 모드 (좌석 여유 / 소요시간 넉넉)</option>
+                        <option value="normal" selected>🟡 실전 모드 (일반 주말 경기 수준)</option>
+                        <option value="hard">🔴 매진 모드 (포스트시즌 / 빅매치)</option>
+                        <option value="hell">👿 이선좌 지옥 (0.1초 매크로/초고속 매진)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Membership Info Banner -->
+            <div id="membership-status-banner" class="bg-amber-950/30 border border-amber-500/30 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">⚠️</span>
+                    <div class="text-xs">
+                        <h4 class="font-bold text-amber-300 text-sm">현재 [일반 회원] 상태입니다!</h4>
+                        <p class="text-amber-200/80 mt-0.5">유료 멤버십 미가입 시, <strong class="text-red-400">멤버십 가입자가 VIP석/응원석 등 주요 좌석을 10분 먼저 선점</strong>하여 잔여 좌석이 크게 부족합니다.</p>
+                    </div>
+                </div>
+                <button onclick="openTossMembershipModal()" class="bg-amber-500 hover:bg-amber-400 text-black font-extrabold px-4 py-2 rounded-lg text-xs whitespace-nowrap shadow">
+                    토스뱅크 9,900원 멤버십 가입 💳
+                </button>
+            </div>
+
+            <!-- Match Calendar / Game List -->
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        📅 KIA 타이거즈 주요 경기 일정 <span id="match-count-badge" class="bg-red-950 border border-red-800 text-xs px-2 py-0.5 rounded text-red-300 font-bold">6경기</span>
+                    </h3>
+                </div>
+
+                <div id="match-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[380px] overflow-y-auto pr-1">
+                    <!-- Dynamic Matches inserted via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Pre-Entry 5-Second Delay Modal Screen -->
+        <div id="modal-5s-delay" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <div class="bg-[#120507] border border-red-600/60 rounded-3xl p-8 max-w-md w-full space-y-6 text-center shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-amber-500 to-red-600 animate-pulse"></div>
+                <div class="w-16 h-16 bg-red-600/20 border-2 border-red-500 rounded-full flex items-center justify-center mx-auto text-3xl">
+                    🐅
+                </div>
+                <div class="space-y-2">
+                    <span class="text-xs text-red-400 font-extrabold tracking-widest uppercase">KIA TIGERS GATE ENTRY</span>
+                    <h3 class="text-2xl font-black text-white">서버 예매 창 입장 준비 중</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        공정한 예매 접속 순서 보장을 위해 <strong class="text-red-400">5초 후</strong> 네이비즘 서버 시계 예매창으로 입장합니다.
+                    </p>
+                </div>
+
+                <div class="bg-black/80 rounded-2xl p-6 border border-red-950/80 shadow-inner">
+                    <div id="countdown-5s-num" class="text-6xl font-black text-red-500 font-mono tracking-tighter">5</div>
+                    <p class="text-[11px] text-slate-500 mt-2">잠시만 기다려 주세요...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 1: Navyism Server Clock Open Timing Trigger -->
+        <div id="step-1" class="hidden bg-[#160a0c] border border-red-950/80 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div class="border-b border-red-900/30 pb-4 flex justify-between items-center">
+                <div>
+                    <span class="bg-red-600/20 text-red-400 border border-red-500/30 text-xs font-bold px-3 py-1 rounded-full">STEP 1</span>
+                    <h2 class="text-2xl font-black text-white mt-2">타이거즈 서버 시계 정각 타격</h2>
+                    <p class="text-slate-400 text-sm mt-1">서버 시계가 <strong class="text-red-500" id="target-time-label">14:00:00.00</strong> 정각에 달했을 때 클릭하세요!</p>
+                </div>
+                <button onclick="backToStep0()" class="text-xs text-slate-400 hover:text-white underline">← 경기 다시 선택</button>
+            </div>
+
+            <!-- Selected Game Match Summary Box -->
+            <div id="selected-match-summary" class="bg-black/60 p-4 rounded-xl border border-red-900/40 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <!-- Inserted via JS -->
+            </div>
+
+            <!-- Match Options -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-black/40 p-4 rounded-xl border border-red-900/30">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1 font-bold">🎟️ 관람 인원 선택</label>
+                    <select id="ticket-qty-select" class="bg-[#120507] border border-red-800 text-sm text-white rounded-lg px-3 py-2 w-full focus:outline-none focus:border-red-500 font-bold">
+                        <option value="1">1매 (개인)</option>
+                        <option value="2" selected>2매 (연석)</option>
+                        <option value="3">3매 (연석)</option>
+                        <option value="4">4매 (최대)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1 font-bold">🔊 효과음 설정</label>
+                    <button id="btn-toggle-sound" onclick="toggleSound()" class="w-full bg-[#120507] border border-red-800 text-sm text-white rounded-lg px-3 py-2 font-bold flex items-center justify-center gap-2 hover:bg-slate-900">
+                        🔊 효과음 켜짐
+                    </button>
+                </div>
+            </div>
+
+            <!-- Server Clock Big Display & Action Button -->
+            <div class="bg-black/90 border border-red-600/40 rounded-2xl p-8 text-center space-y-6">
+                <div class="space-y-1">
+                    <span class="text-xs text-slate-400 font-mono tracking-widest uppercase" id="big-clock-sublabel">Target Open Time: 14:00:00.00</span>
+                    <div id="big-server-clock" class="text-4xl sm:text-6xl font-black text-red-500 font-mono tracking-wider">
+                        13:59:55.00
+                    </div>
+                </div>
+
+                <div class="max-w-md mx-auto">
+                    <button id="btn-start-booking" onclick="triggerClockClick()" class="w-full bg-red-600 hover:bg-red-500 disabled:bg-slate-900 disabled:text-slate-600 text-white font-black text-xl py-5 px-6 rounded-xl transition duration-150 shadow-2xl flex items-center justify-center gap-2 border border-red-400">
+                        <span id="booking-btn-text">⏳ 예매 오픈 대기 중...</span>
+                    </button>
+                    <p id="clock-click-feedback" class="text-xs text-amber-400 font-bold mt-2 min-h-[18px]"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: Identity Verification & Captcha Security -->
+        <div id="step-2" class="hidden bg-[#160a0c] border border-red-950/80 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div class="border-b border-red-900/30 pb-4 flex justify-between items-start">
+                <div>
+                    <span class="bg-sky-500/10 text-sky-400 border border-sky-500/20 text-xs font-bold px-3 py-1 rounded-full">STEP 2</span>
+                    <h2 class="text-2xl font-black text-white mt-2">본인 확인 및 AI 매크로 방지 보안문자</h2>
+                    <p class="text-slate-400 text-sm mt-1">암표 거래 방지 신분증 정보 확인 및 보안문자를 빠르게 입력하세요.</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-slate-400 block">제한시간</span>
+                    <span id="step2-timer" class="text-2xl font-mono font-bold text-amber-400">12.00초</span>
+                </div>
+            </div>
+
+            <!-- Match Summary Date Banner in Step 2 -->
+            <div id="step2-match-summary" class="bg-black/70 border border-red-800/60 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-inner">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">📅</span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="bg-red-950 border border-red-800 text-red-300 text-[10px] font-bold px-2 py-0.5 rounded">예매 경기 날짜</span>
+                            <span id="step2-match-date" class="text-amber-400 font-black text-sm sm:text-base font-mono">2026.10.24 (토) 14:00</span>
+                        </div>
+                        <h4 id="step2-match-title" class="text-white font-extrabold text-sm sm:text-base mt-0.5">2026 KBO 한국시리즈 1차전</h4>
+                    </div>
+                </div>
+                <div id="step2-match-stadium" class="text-xs text-slate-400 font-bold bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                    🏟️ 광주-기아 챔피언스 필드
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- ID Verification Card -->
+                <div class="bg-black/60 p-5 rounded-xl border border-slate-800 space-y-4">
+                    <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <span class="text-xl">🪪</span>
+                        <h3 class="font-bold text-white text-base">관람자 본인 확인</h3>
+                    </div>
+
+                    <div class="space-y-3 text-xs text-slate-300">
+                        <div>
+                            <label class="block text-slate-400 mb-1">예매자 이름</label>
+                            <input type="text" value="김타이거 (카카오 본인인증)" readonly class="w-full bg-slate-900 border border-slate-800 rounded px-3 py-2 text-slate-300 font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">생년월일 (6자리 입력)</label>
+                            <input type="text" id="id-birth" placeholder="980512" maxlength="6" value="980512" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white font-mono focus:border-red-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Prevention Captcha -->
+                <div class="bg-black/60 p-5 rounded-xl border border-slate-800 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🤖</span>
+                            <h3 class="font-bold text-white text-base">보안문자 입력</h3>
+                        </div>
+                        <button onclick="generateCaptchaCode()" class="text-xs text-red-400 hover:underline flex items-center gap-1">새로고침 🔄</button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div id="captcha-display" class="captcha-font text-3xl font-black text-red-400 text-center py-4 rounded-lg select-none border border-slate-800 tracking-widest shadow-inner">
+                            A8K9Z
+                        </div>
+                        <input type="text" id="captcha-input" placeholder="위 문자 5자리 입력" maxlength="5" autocomplete="off" onkeydown="handleCaptchaKey(event)" class="w-full bg-slate-900 border-2 border-red-500/60 rounded-lg py-2.5 px-3 text-center text-2xl font-bold uppercase tracking-widest text-white focus:outline-none focus:border-red-400">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="verifyStep2()" class="w-full bg-red-600 hover:bg-red-500 text-white font-black text-lg py-4 rounded-xl transition shadow-lg border border-red-400">
+                보안문자 확인 완료 → (대기열 진입)
+            </button>
+        </div>
+
+        <!-- STEP 2.5: Server Queue Wait Screen -->
+        <div id="step-2-5" class="hidden bg-[#160a0c] border border-red-950/80 rounded-2xl p-8 shadow-2xl text-center space-y-6">
+            <div class="inline-block bg-red-600/10 border border-red-500/20 text-red-400 px-4 py-1.5 rounded-full text-xs font-bold animate-pulse">
+                KIA TIGERS 실시간 예매 대기 중
+            </div>
+
+            <div class="space-y-2">
+                <h2 class="text-2xl sm:text-3xl font-black text-white">동시 접속자 접속 대기 순번</h2>
+                <p id="queue-match-info" class="text-xs sm:text-sm text-amber-400 font-bold">
+                    📅 예매 진행 경기: <span id="queue-match-date-text" class="text-white">2026.10.24 (토) 14:00</span>
+                </p>
+            </div>
+
+            <div class="bg-black/70 border border-red-900/40 rounded-2xl p-6 max-w-md mx-auto space-y-4 shadow-xl">
+                <div class="flex justify-between items-center text-sm border-b border-slate-800 pb-3">
+                    <span class="text-slate-400">내 앞 대기 인원</span>
+                    <span id="queue-number" class="text-3xl font-black text-amber-400 font-mono">4,812 명</span>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="w-full bg-slate-800 h-3.5 rounded-full overflow-hidden">
+                        <div id="queue-progress-bar" class="bg-gradient-to-r from-red-600 to-amber-400 h-full w-0 transition-all duration-200"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-400 font-mono">
+                        <span>예상 대기시간: <strong id="queue-timer-text" class="text-red-400">8.0초</strong></span>
+                        <span>서버 상태: 혼잡</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Stadium Sector Map & Rapid Seat Picker -->
+        <div id="step-3" class="hidden bg-[#160a0c] border border-red-950/80 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-900/30 pb-4">
+                <div>
+                    <span class="bg-red-600/20 text-red-400 border border-red-500/30 text-xs font-bold px-3 py-1 rounded-full">STEP 3</span>
+                    <h2 class="text-xl sm:text-2xl font-black text-white mt-1" id="stadium-view-title">🏟️ 광주-기아 챔피언스 필드 구역 선택</h2>
+                    <p id="step3-match-date-badge" class="text-xs text-amber-400 font-extrabold mt-1 flex items-center gap-1.5">
+                        📅 관람 날짜 및 경기: <span id="step3-match-date-text" class="text-white font-black">2026.10.24 (토) 14:00 [2026 KBO 한국시리즈]</span>
+                    </p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400 block">남은 좌석 선택 시간</span>
+                        <span id="game-timer" class="text-2xl font-mono font-black text-amber-400">180.00초</span>
+                    </div>
+                    <button id="btn-back-map" onclick="showFullMap()" class="hidden bg-slate-800 hover:bg-slate-700 text-xs text-white px-3 py-2 rounded-lg border border-slate-700">
+                        ← 구역 전체 지도
+                    </button>
+                </div>
+            </div>
+
+            <!-- Seat Legend Banner -->
+            <div class="flex items-center justify-between bg-black/60 px-4 py-2 rounded-xl text-xs font-bold border border-slate-800">
+                <div class="flex items-center gap-4">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span> 선택 가능</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-purple-900 border border-purple-500 inline-block"></span> 👑 정기 멤버십 선점석 (선택 불가)</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-800 border border-slate-700 inline-block"></span> 일반 매진석</span>
+                </div>
+                <span id="seat-member-notice" class="text-amber-400 text-[11px]">⚠️ 일반회원은 멤버십 선점석을 예매할 수 없습니다.</span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Stadium Graphic or Seat Grid -->
+                <div class="lg:col-span-2 bg-black/80 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center min-h-[440px] relative overflow-hidden">
+
+                    <!-- Stadium Map Graphic -->
+                    <div id="view-full-stadium" class="w-full max-w-xl mx-auto relative group">
+                        <!-- Tooltip -->
+                        <div id="zone-tooltip" class="pointer-events-none absolute opacity-0 transition-opacity duration-150 bg-slate-900/95 border border-slate-700 text-white text-xs px-3 py-1.5 rounded-lg shadow-xl z-20 font-bold whitespace-nowrap">
+                            구역 정보
+                        </div>
+
+                        <svg class="w-full h-auto drop-shadow-2xl select-none" viewBox="0 0 600 500" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <pattern id="grass-stripes" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(25)">
+                                    <rect x="0" y="0" width="10" height="20" fill="#15803d" />
+                                    <rect x="10" y="0" width="10" height="20" fill="#166534" />
+                                </pattern>
+                                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feGaussianBlur stdDeviation="4" result="blur" />
+                                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                </filter>
+                            </defs>
+
+                            <path d="M 50 250 Q 300 -30 550 250 L 580 440 Q 300 500 20 440 Z" fill="#0f172a" stroke="#334155" stroke-width="4"/>
+
+                            <!-- Upper Navy Deck -->
+                            <path class="zone-hover" d="M 60 255 Q 300 -10 540 255 L 510 320 Q 300 80 90 320 Z" fill="#1e3a8a" opacity="0.9"
+                                  onmouseenter="showZoneTooltip(event, 'KIA K5/K3 상단관람석', '12,000원', '잔여석 부족')"
+                                  onmouseleave="hideZoneTooltip()"
+                                  onclick="selectStadiumSection('KIA K5/K3 상단관람석', 48, '#1e3a8a')"/>
+                            <text x="300" y="145" fill="#93c5fd" font-size="12" font-weight="800" text-anchor="middle" pointer-events="none">KIA K5/K3 관람석 (상단)</text>
+
+                            <!-- 3루 원정 응원석 -->
+                            <path class="zone-hover" d="M 90 320 Q 200 130 280 220 L 210 280 Q 140 230 110 340 Z" fill="#2563eb" opacity="0.9"
+                                  onmouseenter="showZoneTooltip(event, '3루 원정응원석', '17,000원', '잔여석 약간')"
+                                  onmouseleave="hideZoneTooltip()"
+                                  onclick="selectStadiumSection('3루 원정응원석', 32, '#2563eb')"/>
+                            <text x="165" y="270" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" pointer-events="none">3루 원정응원석</text>
+
+                            <!-- 1루 타이거즈 홈 응원석 (KIA Home Cheer Zone) -->
+                            <path class="zone-hover" d="M 510 320 Q 400 130 320 220 L 390 280 Q 460 230 490 340 Z" fill="#dc2626" opacity="0.95" filter="url(#glow)"
+                                  onmouseenter="showZoneTooltip(event, '🐯 1루 타이거즈 응원석', '18,000원', '멤버십 선점 집중')"
+                                  onmouseleave="hideZoneTooltip()"
+                                  onclick="selectStadiumSection('1루 타이거즈 응원석', 30, '#dc2626')"/>
+                            <text x="435" y="270" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" pointer-events="none">🐯 1루 타이거즈 응원석</text>
+
+                            <!-- 3루 내야 익사이팅석 -->
+                            <path class="zone-hover" d="M 115 345 L 205 285 L 225 315 L 145 370 Z" fill="#7c3aed" opacity="0.9"
+                                  onmouseenter="showZoneTooltip(event, '3루 익사이팅존', '25,000원', '잔여 8석')"
+                                  onmouseleave="hideZoneTooltip()"
+                                  onclick="selectStadiumSection('3루 익사이팅존', 18, '#7c3aed')"/>
+                            <text x="160" y="335" fill="#f3e8ff" font-size="9" font-weight="bold" text-anchor="middle" pointer-events="none">3루 익사이팅</text>
+
+                            <!-- 1루 내야 익사이팅석 -->
+                            <path class="zone-hover" d="M 485 345 L 395 285 L 375 315 L 455 370 Z" fill="#db2777" opacity="0.9"
+                                  onmouseenter="showZoneTooltip(event, '1루 타이거즈 서프라이즈존', '28,000원', '잔여 5석')"
+                                  onmouseleave="hideZoneTooltip()"
+                                  onclick="selectStadiumSection('1루 타이거즈 서프라이즈존', 16, '#db2777')"/>
+                            <text x="440" y="335" fill="#fce7f3" font-size="9" font-weight="bold" text-anchor="middle" pointer-events="none">1루 서프라이즈</text>
+
+                            <!-- 중앙 챔피언스 VIP 테이블석 -->
+                            <path class="zone-hover" d="M 240 370 L 360 370 L 340 420 L 260 420 Z" fill="#ea580c" opacity="0.95" filter="url(#glow)"
+                                  onmouseenter="showZoneTooltip(event, '👑 챔피언스 VIP 테이블석', '50,000원', '멤버십 선점석')"
+                                  onmouseleave="hideZoneTooltip()"
+                                  onclick="selectStadiumSection('챔피언스 VIP 테이블석', 16, '#ea580c')"/>
+                            <text x="300" y="398" fill="#ffffff" font-size="11" font-weight="900" text-anchor="middle" pointer-events="none">👑 VIP 테이블석</text>
+
+                            <!-- 중앙 하단 포수후면 S석 -->
+                            <path class="zone-hover" d="M 255 425 L 345 425 L 330 460 L 270 460 Z" fill="#059669" opacity="0.9"
+                                  onmouseenter="showZoneTooltip(event, '포수후면 챔피언석', '40,000원', '잔여석 매우 부족')"
+                                  onmouseleave="hideZoneTooltip()"
+                                  onclick="selectStadiumSection('포수후면 챔피언석', 20, '#059669')"/>
+                            <text x="300" y="446" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle" pointer-events="none">포수후면 챔피언석</text>
+
+                            <!-- Outfield Left Designated Seats -->
+                            <path class="zone-hover" d="M 80 230 Q 180 60 290 50 L 290 85 Q 190 95 105 240 Z" fill="#15803d" opacity="0.9"
+                                  onmouseenter="showZoneTooltip(event, '외야 자유석 (좌측)', '10,000원', '잔여석 여유')"
+                                  onmouseleave="hideZoneTooltip()"
+                                  onclick="selectStadiumSection('외야 자유석 (좌측)', 36, '#15803d')"/>
+                            <text x="180" y="115" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" pointer-events="none">외야 좌측석</text>
+
+                            <!-- Outfield Right Designated Seats -->
+                            <path class="zone-hover" d="M 520 230 Q 420 60 310 50 L 310 85 Q 410 95 495 240 Z" fill="#166534" opacity="0.9"
+                                  onmouseenter="showZoneTooltip(event, '외야 그린석 (우측)', '10,000원', '잔여석 여유')"
+                                  onmouseleave="hideZoneTooltip()"
+                                  onclick="selectStadiumSection('외야 그린석 (우측)', 38, '#166534')"/>
+                            <text x="420" y="115" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" pointer-events="none">외야 그린석</text>
+
+                            <!-- Realistic Outfield Wall -->
+                            <path d="M 110 240 Q 300 100 490 240" fill="none" stroke="#f59e0b" stroke-width="4"/>
+                            <path d="M 118 245 Q 300 112 482 245 C 430 330, 370 365, 300 370 C 230 365, 170 330, 118 245 Z" fill="#b45309" opacity="0.8"/>
+                            <path d="M 125 245 Q 300 120 475 245 C 420 325, 365 360, 300 362 C 235 360, 180 325, 125 245 Z" fill="url(#grass-stripes)"/>
+                            <path d="M 215 285 Q 300 200 385 285 L 300 365 Z" fill="#9a3412" opacity="0.95"/>
+                            <circle cx="300" cy="285" r="50" fill="#15803d"/>
+                            <circle cx="300" cy="280" r="10" fill="#7c2d12"/>
+                            <rect x="296" y="279" width="8" height="2" fill="#ffffff"/>
+
+                            <line x1="300" y1="355" x2="128" y2="242" stroke="#ffffff" stroke-width="2"/>
+                            <line x1="300" y1="355" x2="472" y2="242" stroke="#ffffff" stroke-width="2"/>
+
+                            <!-- Scoreboard Display -->
+                            <g transform="translate(210, 8)">
+                                <rect x="0" y="0" width="180" height="34" rx="4" fill="#020617" stroke="#e6002d" stroke-width="2"/>
+                                <rect x="4" y="4" width="172" height="26" rx="2" fill="#0f172a"/>
+                                <text x="90" y="18" fill="#e6002d" font-size="10" font-weight="900" text-anchor="middle" font-family="monospace">광주-기아 챔피언스 필드</text>
+                                <text x="90" y="26" fill="#f59e0b" font-size="7" font-weight="bold" text-anchor="middle" font-family="monospace">KIA TIGERS OFFICIAL TICKETING</text>
+                            </g>
+                        </svg>
+                        <p class="text-center text-xs text-slate-400 mt-2 font-medium">
+                            👆 실제 챔피언스 필드 구역에 마우스를 올리고 클릭하여 진입하세요!
+                        </p>
+                    </div>
+
+                    <!-- Seat Matrix Grid -->
+                    <div id="view-seats-grid" class="hidden w-full space-y-3">
+                        <div class="flex justify-between items-center px-2 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+                            <span class="text-xs text-red-400 font-bold flex items-center gap-1.5">
+                                🐯 [챔피언스 필드 그라운드 방향]
+                            </span>
+                            <span id="zone-color-indicator" class="text-xs font-bold px-3 py-1 rounded-full text-white shadow">구역 좌석</span>
+                        </div>
+                        <div id="seats-container" class="grid grid-cols-10 gap-2 p-4 bg-slate-900 rounded-xl max-w-md mx-auto border border-slate-800 max-h-[340px] overflow-y-auto shadow-inner"></div>
+                    </div>
+                </div>
+
+                <!-- Seat Selection Info Panel -->
+                <div class="bg-black/80 border border-slate-800 rounded-xl p-5 flex flex-col justify-between space-y-4">
+                    <div class="space-y-4">
+                        <h3 class="font-bold text-lg text-white border-b border-slate-800 pb-2">티켓 선택 정보</h3>
+
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between text-slate-400">
+                                <span>선택 매수</span>
+                                <span id="info-target-qty" class="text-red-400 font-bold">2매</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>선택 구역</span>
+                                <span id="info-section-name" class="text-white font-bold">구역 미선택</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>구역 잔여석</span>
+                                <span id="info-seat-count" class="text-purple-400 font-bold">0석</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>선택된 좌석</span>
+                                <span id="info-selected-seat" class="text-emerald-400 font-bold text-right">없음</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="btn-pay" disabled onclick="completeSeatBooking()" class="w-full bg-red-600 hover:bg-red-500 disabled:bg-slate-900 disabled:text-slate-600 text-white font-black text-base py-4 rounded-xl transition shadow-xl border border-red-400">
+                        좌석 선택 완료 (결제하기)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toss Bank Financial Subscription Modal -->
+        <div id="modal-toss-bank" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm">
+            <div class="bg-[#191f28] border border-blue-500/30 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 text-white space-y-6 shadow-2xl toss-modal-anim relative">
+                <!-- Toss Header -->
+                <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-black text-sm">
+                            toss
+                        </div>
+                        <span class="font-bold text-lg">토스뱅크 자동결제</span>
+                    </div>
+                    <button onclick="closeTossModal()" class="text-gray-400 hover:text-white font-bold text-xl px-2">✕</button>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-[#222935] p-4 rounded-2xl border border-blue-500/20 space-y-2">
+                        <span class="text-xs text-blue-400 font-bold">KIA TIGERS OFFICIAL MEMBERSHIP</span>
+                        <h4 class="font-extrabold text-xl text-white">챔피언스 월 정기 구독</h4>
+                        <div class="flex justify-between items-baseline pt-2 border-t border-gray-700/60">
+                            <span class="text-xs text-gray-400">매월 정기 결제금액</span>
+                            <span class="text-2xl font-black text-blue-400 font-mono">₩ 9,900 /월</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-950/40 border border-blue-500/30 rounded-xl p-3 text-xs text-blue-300 leading-relaxed">
+                        🎁 <strong>멤버십 특전:</strong> 일반 회원보다 <strong class="text-amber-300">10분 먼저 예매 오픈</strong>되며, 챔피언스 VIP석 및 1루 홈응원석 단독 선점 권한이 제공됩니다!
+                    </div>
+
+                    <!-- Toss Pin Authentication Pad -->
+                    <div class="space-y-3 pt-2">
+                        <label class="text-xs text-gray-400 block text-center">토스뱅크 비밀번호 6자리 입력</label>
+                        <div class="flex justify-center gap-3">
+                            <div id="pin-1" class="w-4 h-4 rounded-full bg-gray-700"></div>
+                            <div id="pin-2" class="w-4 h-4 rounded-full bg-gray-700"></div>
+                            <div id="pin-3" class="w-4 h-4 rounded-full bg-gray-700"></div>
+                            <div id="pin-4" class="w-4 h-4 rounded-full bg-gray-700"></div>
+                            <div id="pin-5" class="w-4 h-4 rounded-full bg-gray-700"></div>
+                            <div id="pin-6" class="w-4 h-4 rounded-full bg-gray-700"></div>
+                        </div>
+
+                        <!-- Virtual Keypad -->
+                        <div class="grid grid-cols-3 gap-2 pt-3 font-mono text-xl font-bold">
+                            <button onclick="pressTossPin('1')" class="bg-[#28303f] hover:bg-blue-600/40 py-3 rounded-xl transition">1</button>
+                            <button onclick="pressTossPin('2')" class="bg-[#28303f] hover:bg-blue-600/40 py-3 rounded-xl transition">2</button>
+                            <button onclick="pressTossPin('3')" class="bg-[#28303f] hover:bg-blue-600/40 py-3 rounded-xl transition">3</button>
+                            <button onclick="pressTossPin('4')" class="bg-[#28303f] hover:bg-blue-600/40 py-3 rounded-xl transition">4</button>
+                            <button onclick="pressTossPin('5')" class="bg-[#28303f] hover:bg-blue-600/40 py-3 rounded-xl transition">5</button>
+                            <button onclick="pressTossPin('6')" class="bg-[#28303f] hover:bg-blue-600/40 py-3 rounded-xl transition">6</button>
+                            <button onclick="pressTossPin('7')" class="bg-[#28303f] hover:bg-blue-600/40 py-3 rounded-xl transition">7</button>
+                            <button onclick="pressTossPin('8')" class="bg-[#28303f] hover:bg-blue-600/40 py-3 rounded-xl transition">8</button>
+                            <button onclick="pressTossPin('9')" class="bg-[#28303f] hover:bg-blue-600/40 py-3 rounded-xl transition">9</button>
+                            <button onclick="clearTossPin()" class="bg-[#28303f] text-xs text-gray-400 py-3 rounded-xl">지우기</button>
+                            <button onclick="pressTossPin('0')" class="bg-[#28303f] hover:bg-blue-600/40 py-3 rounded-xl transition">0</button>
+                            <button onclick="submitTossPayment()" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white py-3 rounded-xl">결제 완료</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KakaoTalk Authentication Modal -->
+        <div id="modal-kakao-auth" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div class="bg-[#FEE500] text-[#191919] border-2 border-[#e5cd00] w-full max-w-sm rounded-3xl p-6 space-y-5 shadow-2xl relative text-center">
+                <div class="w-12 h-12 bg-[#3C1E1E] rounded-2xl flex items-center justify-center mx-auto shadow">
+                    <svg class="w-7 h-7 fill-[#FEE500]" viewBox="0 0 24 24"><path d="M12 3C6.477 3 2 6.477 2 10.767c0 2.766 1.84 5.187 4.606 6.574-.202.738-.732 2.684-.838 3.097-.132.518.19.512.398.374.164-.108 2.607-1.77 3.659-2.482.721.103 1.46.157 2.175.157 5.523 0 10-3.477 10-7.767S17.523 3 12 3z"/></svg>
+                </div>
+                <div>
+                    <h3 class="font-black text-xl text-[#191919]">카카오톡 간편 본인인증</h3>
+                    <p class="text-xs text-[#554a00] font-semibold mt-1">카카오 인증서로 보안인증을 완료하세요.</p>
+                </div>
+
+                <div class="bg-[#3C1E1E]/5 p-4 rounded-xl border border-[#3C1E1E]/10 space-y-2 text-left text-xs font-medium text-[#2a2200]">
+                    <div class="flex justify-between"><span>이름</span><strong>김타이거</strong></div>
+                    <div class="flex justify-between"><span>휴대폰 번호</span><strong>010-****-8255</strong></div>
+                    <div class="flex justify-between"><span>인증 종류</span><strong>기아타이거즈 예매 인증</strong></div>
+                </div>
+
+                <div class="space-y-2">
+                    <button onclick="confirmKakaoAuth()" class="w-full bg-[#3C1E1E] hover:bg-[#2a1515] text-[#FEE500] font-black py-3.5 rounded-xl transition shadow-lg text-sm">
+                        카카오톡으로 인증하기 📲
+                    </button>
+                    <button onclick="closeKakaoAuthModal()" class="w-full bg-transparent text-[#3C1E1E] font-bold py-2 text-xs hover:underline">
+                        취소
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: Game Result & Detailed Analytics -->
+        <div id="step-4" class="hidden bg-[#160a0c] border border-red-950/80 rounded-2xl p-6 sm:p-8 shadow-2xl text-center space-y-6">
+            <div id="result-badge-box" class="inline-block px-6 py-2 rounded-full font-black text-lg"></div>
+
+            <h2 id="result-title" class="text-3xl font-black text-white">티켓 예매 결과</h2>
+
+            <div id="ticket-card" class="max-w-md mx-auto bg-black/90 border border-red-900/40 rounded-2xl p-6 text-left space-y-4 shadow-2xl">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span id="res-team-logo" class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center font-bold text-xs">KIA</span>
+                        <span id="res-match-name" class="text-xs font-bold text-slate-200">2026 KBO 한국시리즈</span>
+                    </div>
+                    <span id="res-rank" class="text-xs font-black px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">S급 고수</span>
+                </div>
+
+                <div class="space-y-2.5 text-xs sm:text-sm">
+                    <div class="flex justify-between"><span class="text-slate-400">예매 일시</span><strong id="res-date" class="text-slate-200">2026.10.24 (토)</strong></div>
+                    <div class="flex justify-between"><span class="text-slate-400">예매 인원</span><strong id="res-qty" class="text-amber-400 font-bold">2매</strong></div>
+                    <div class="flex justify-between"><span class="text-slate-400">예매 좌석</span><strong id="res-seat" class="text-emerald-400 font-bold">-</strong></div>
+                    
+                    <div class="border-t border-slate-800/80 my-2 pt-2 space-y-1.5 font-mono text-xs">
+                        <div class="text-slate-400 font-sans font-bold mb-1">⏱️ 구간별 속도 측정 리포트:</div>
+                        <div class="flex justify-between"><span class="text-slate-400">① 정각 클릭 반응:</span><strong id="res-clock-time" class="text-sky-400">+0 ms</strong></div>
+                        <div class="flex justify-between"><span class="text-slate-400">② 보안문자 입력:</span><strong id="res-captcha-time" class="text-sky-400">0.0초</strong></div>
+                        <div class="flex justify-between"><span class="text-slate-400">③ 좌석 클릭 반응:</span><strong id="res-seat-time" class="text-purple-400">0 ms</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="kakao-retrigger-container" class="hidden mb-3">
+                <button onclick="showKakaoNotification()" class="bg-[#FEE500] hover:bg-[#ebd300] text-[#3C1E1E] font-black px-6 py-3 rounded-xl transition shadow-lg text-xs sm:text-sm flex items-center justify-center gap-2 mx-auto">
+                    💬 카카오톡 알림톡 메시지 다시 보기
+                </button>
+            </div>
+
+            <button onclick="resetApplication()" class="bg-red-600 hover:bg-red-500 text-white font-black px-8 py-4 rounded-xl transition shadow-lg border border-red-400">
+                다시 티켓팅 연습하기 🔄
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Custom Modal (Alert replacement) -->
+    <div id="custom-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl text-center">
+            <div id="modal-icon" class="text-4xl">⚠️</div>
+            <h3 id="modal-title" class="text-xl font-bold text-white">알림</h3>
+            <p id="modal-msg" class="text-sm text-slate-300 leading-relaxed">알림 메시지 내용</p>
+
+            <!-- Anti-macro 2nd verification captcha -->
+            <div id="modal-captcha-container" class="hidden space-y-3 pt-2">
+                <div id="modal-captcha-code" class="captcha-font text-2xl font-bold text-amber-400 bg-slate-950 py-2 rounded">
+                    보안문자
+                </div>
+                <input type="text" id="modal-captcha-input" placeholder="보안코드 입력" autocomplete="off" class="w-full bg-slate-950 border border-amber-500/50 rounded-lg py-2 px-3 text-center text-lg text-white font-bold uppercase focus:outline-none">
+            </div>
+
+            <button id="modal-btn-confirm" onclick="closeCustomModal()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold py-3 rounded-xl transition">
+                확인
+            </button>
+        </div>
+    </div>
+
+    <footer class="w-full text-center py-4 text-xs text-slate-500 border-t border-slate-900">
+        © 2026 KBO 프로야구 티켓팅 마스터 | 10개 구단 예매 연습 & 네이비즘 정각 타격 시뮬레이터
+    </footer>
+
+    <script>
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        // Global State & Interval Timer Declarations
+        let serverClockInterval = null;
+        let step2Interval = null;
+        let queueInterval = null;
+        let gameInterval = null;
+        let seatDisappearInterval = null;
+
+        let isPaidMember = false;
+        let isKakaoAuthed = false;
+
+        let selectedMatch = null;
+        let clockClickDiffMs = 0;
+        let captchaStartTime = 0;
+        let captchaTimeMs = 0;
+        let seatStartTime = 0;
+        let seatTimeMs = 0;
+
+        let queueTimer = 10.0;
+        let gameTimer = 200.0;
+
+        let selectedTicketQty = 2;
+        let selectedSectionName = "";
+        let selectedSectionColor = "";
+        let selectedSeatIndices = [];
+
+        let modalSecondaryCaptcha = "";
+        let modalCallback = null;
+
+        let tossPinEntered = "";
+        let currentCaptcha = "";
+        let lastSuccessfulBookingDetail = null;
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+                if (type === 'click') {
+                    osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'success') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.08);
+                    osc.frequency.setValueAtTime(783.99, now + 0.16);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('btn-toggle-sound');
+            if (btn) {
+                btn.innerText = soundEnabled ? '🔊 효과음 켜짐' : '🔇 효과음 끄기';
+            }
+        }
+
+        function generateCaptchaCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 5; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            currentCaptcha = code;
+            const disp = document.getElementById('captcha-display');
+            if (disp) disp.innerText = code;
+            const input = document.getElementById('captcha-input');
+            if (input) input.value = '';
+        }
+
+        function handleCaptchaKey(e) {
+            if (e.key === 'Enter') {
+                verifyStep2();
+            }
+        }
+
+        function startStep2Timer() {
+            let timeLeft = 12.00;
+            const timerEl = document.getElementById('step2-timer');
+            clearInterval(step2Interval);
+            step2Interval = setInterval(() => {
+                timeLeft -= 0.05;
+                if (timerEl) timerEl.innerText = `${Math.max(0, timeLeft).toFixed(2)}초`;
+                if (timeLeft <= 0) {
+                    clearInterval(step2Interval);
+                    playSound('error');
+                    showCustomModal("시간 초과", "보안문자 입력 제한시간이 초과되었습니다.", "⏱️");
+                    resetToStep0();
+                }
+            }, 50);
+        }
+
+        function verifyStep2() {
+            const input = document.getElementById('captcha-input').value.trim().toUpperCase();
+            if (input === currentCaptcha) {
+                playSound('success');
+                clearInterval(step2Interval);
+                captchaTimeMs = Date.now() - captchaStartTime;
+                document.getElementById('step-2').classList.add('hidden');
+                document.getElementById('step-2-5').classList.remove('hidden');
+                startQueueWait();
+            } else {
+                playSound('error');
+                showCustomModal("보안문자 오류", "보안문자가 일치하지 않습니다. 다시 입력해주세요.", "❌");
+                generateCaptchaCode();
+            }
+        }
+
+        // KBO Match Schedule Dataset
+        const matchSchedule = [
+            { id: 'm1', title: '2026 KBO 한국시리즈 1차전', home: 'KIA 타이거즈', away: '삼성 라이온즈', date: '2026.10.24 (토) 14:00', stadium: '광주-기아 챔피언스 필드', badge: '🔥 PS 빅매치' },
+            { id: 'm2', title: '2026 KBO 정규시즌 개막전', home: 'KIA 타이거즈', away: 'LG 트윈스', date: '2026.03.28 (토) 14:00', stadium: '광주-기아 챔피언스 필드', badge: '⭐ 홈개막전' },
+            { id: 'm3', title: '2026 KBO 정규시즌 라이벌전', home: 'KIA 타이거즈', away: 'SSG 랜더스', date: '2026.04.11 (토) 17:00', stadium: '광주-기아 챔피언스 필드', badge: '🎟️ 좌석여유' },
+            { id: 'm4', title: '2026 KBO 정규시즌 클래식 매치', home: 'KIA 타이거즈', away: '롯데 자이언츠', date: '2026.05.05 (화) 14:00', stadium: '광주-기아 챔피언스 필드', badge: '🎈 어린이날' },
+            { id: 'm5', title: '2026 KBO 정규시즌 달빛동맹전', home: 'KIA 타이거즈', away: '삼성 라이온즈', date: '2026.06.13 (토) 17:00', stadium: '광주-기아 챔피언스 필드', badge: '⚡ 주말빅매치' },
+            { id: 'm6', title: '2026 KBO 정규시즌 원정 매치', home: '두산 베어스', away: 'KIA 타이거즈', date: '2026.07.18 (토) 18:00', stadium: '서울 잠실야구장', badge: '✈️ 원정응원' }
+        ];
+
+        function renderMatchList() {
+            const container = document.getElementById('match-list');
+            if (!container) return;
+            container.innerHTML = matchSchedule.map(m => `
+                <div onclick="start5SecQueue('${m.id}')" class="bg-black/60 hover:bg-black/90 border border-red-900/40 hover:border-red-500 rounded-xl p-4 transition duration-200 cursor-pointer flex justify-between items-center group">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-red-950 border border-red-700 text-red-300 text-[10px] font-black px-2 py-0.5 rounded">${m.badge}</span>
+                            <span class="text-xs text-slate-400 font-mono">${m.stadium}</span>
+                        </div>
+                        <h4 class="font-extrabold text-white text-base group-hover:text-red-400 transition">${m.title}</h4>
+                        <p class="text-xs text-amber-400 font-bold flex items-center gap-1">📅 ${m.date}</p>
+                    </div>
+                    <button class="bg-red-600 group-hover:bg-red-500 text-white font-black text-xs px-3 py-2 rounded-lg transition border border-red-400 shrink-0">
+                        선택하기 →
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderMatchList();
+            startServerClock();
+        });
+
+        function triggerClockClick() {
+            playSound('click');
+            const targetMin = isPaidMember ? 50 : 0;
+            const targetHour = isPaidMember ? 13 : 14;
+
+            const now = new Date(serverTime);
+            const target = new Date(serverTime);
+            target.setHours(targetHour, targetMin, 0, 0);
+
+            const diffMs = now.getTime() - target.getTime();
+            clockClickDiffMs = diffMs;
+
+            const feedback = document.getElementById('clock-click-feedback');
+            if (diffMs < -200) {
+                playSound('error');
+                feedback.innerText = `❌ 너무 빨랐습니다! (${diffMs} ms) 서버가 예매창을 열지 않았습니다.`;
+                return;
+            } else if (diffMs < 0) {
+                feedback.innerText = `⚠️ 약간 빠른 클릭 (${diffMs} ms) - 접속 시도 중...`;
+            } else {
+                feedback.innerText = `✅ 정각 타격 성공! (+${diffMs} ms 반응속도)`;
+            }
+
+            // Update Match Info Banner for Step 2
+            if (selectedMatch) {
+                document.getElementById('step2-match-date').innerText = selectedMatch.date;
+                document.getElementById('step2-match-title').innerText = `${selectedMatch.title} (${selectedMatch.home} vs ${selectedMatch.away})`;
+                document.getElementById('step2-match-stadium').innerText = `🏟️ ${selectedMatch.stadium}`;
+            }
+
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('step-2').classList.remove('hidden');
+
+            generateCaptchaCode();
+            captchaStartTime = Date.now();
+            startStep2Timer();
+        }
+
+        function startQueueWait() {
+            queueTimer = 10.0;
+            let queueCount = isPaidMember ? 120 : 4812;
+            const qNumEl = document.getElementById('queue-number');
+            const pBar = document.getElementById('queue-progress-bar');
+            const qTimerText = document.getElementById('queue-timer-text');
+
+            if (selectedMatch) {
+                document.getElementById('queue-match-date-text').innerText = `${selectedMatch.date} [${selectedMatch.title}]`;
+            }
+
+            qNumEl.innerText = `${queueCount.toLocaleString()} 명`;
+            pBar.style.width = '0%';
+
+            clearInterval(queueInterval);
+            queueInterval = setInterval(() => {
+                queueTimer -= 0.1;
+                const progressPct = ((10.0 - queueTimer) / 10.0) * 100;
+                pBar.style.width = `${Math.min(100, progressPct)}%`;
+
+                queueCount = Math.max(0, Math.floor((queueTimer / 10.0) * (isPaidMember ? 120 : 4812)));
+                qNumEl.innerText = `${queueCount.toLocaleString()} 명`;
+                qTimerText.innerText = `${Math.max(0, queueTimer).toFixed(1)}초`;
+
+                if (queueTimer <= 0) {
+                    clearInterval(queueInterval);
+                    document.getElementById('step-2-5').classList.add('hidden');
+                    document.getElementById('step-3').classList.remove('hidden');
+                    startStadiumSeatStep();
+                }
+            }, 100);
+        }
+
+        function startStadiumSeatStep() {
+            selectedTicketQty = parseInt(document.getElementById('ticket-qty-select').value) || 2;
+            document.getElementById('info-target-qty').innerText = `${selectedTicketQty}매`;
+
+            if (selectedMatch) {
+                document.getElementById('step3-match-date-text').innerText = `${selectedMatch.date} [${selectedMatch.title}]`;
+            }
+
+            showFullMap();
+            gameTimer = 200.0;
+            const timerEl = document.getElementById('game-timer');
+
+            clearInterval(gameInterval);
+            gameInterval = setInterval(() => {
+                gameTimer -= 0.05;
+                if (gameTimer <= 0) {
+                    clearInterval(gameInterval);
+                    timerEl.innerText = "0.00초";
+                    playSound('error');
+                    showCustomModal("좌석 선택 시간 초과", "200초 제한시간이 경과하여 좌석 선택이 취소되었습니다.", "⏱️");
+                    resetToStep0();
+                } else {
+                    timerEl.innerText = gameTimer.toFixed(2) + "초";
+                }
+            }, 50);
+
+            seatStartTime = Date.now();
+        }
+
+        function showFullMap() {
+            playSound('click');
+            document.getElementById('view-full-stadium').classList.remove('hidden');
+            document.getElementById('view-seats-grid').classList.add('hidden');
+            document.getElementById('btn-back-map').classList.add('hidden');
+            document.getElementById('stadium-view-title').innerText = "🏟️ 광주-기아 챔피언스 필드 구역 선택";
+            document.getElementById('info-section-name').innerText = "구역 미선택";
+            document.getElementById('info-seat-count').innerText = "0석";
+            clearInterval(seatDisappearInterval);
+        }
+
+        function showZoneTooltip(e, name, price, status) {
+            const tt = document.getElementById('zone-tooltip');
+            tt.innerHTML = `<div><strong>${name}</strong></div><div class="text-amber-400">${price}</div><div class="text-xs text-slate-300">${status}</div>`;
+            tt.classList.remove('opacity-0');
+            tt.style.left = (e.offsetX + 15) + 'px';
+            tt.style.top = (e.offsetY + 15) + 'px';
+        }
+
+        function hideZoneTooltip() {
+            const tt = document.getElementById('zone-tooltip');
+            tt.classList.add('opacity-0');
+        }
+
+        function selectStadiumSection(name, seatsCount, color) {
+            playSound('click');
+            selectedSectionName = name;
+            selectedSectionColor = color;
+
+            document.getElementById('view-full-stadium').classList.add('hidden');
+            document.getElementById('view-seats-grid').classList.remove('hidden');
+            document.getElementById('btn-back-map').classList.remove('hidden');
+            document.getElementById('stadium-view-title').innerText = `🎟️ [${name}] 잔여 좌석 선택`;
+            document.getElementById('info-section-name').innerText = name;
+
+            const indicator = document.getElementById('zone-color-indicator');
+            indicator.innerText = name;
+            indicator.style.backgroundColor = color;
+
+            renderSeatGrid(seatsCount);
+        }
+
+        function pickSeat(index) {
+            const seatIndexPos = selectedSeatIndices.indexOf(index);
+            if (seatIndexPos !== -1) {
+                playSound('click');
+                selectedSeatIndices.splice(seatIndexPos, 1);
+            } else {
+                if (selectedSeatIndices.length >= selectedTicketQty) {
+                    selectedSeatIndices.shift();
+                }
+                playSound('click');
+                selectedSeatIndices.push(index);
+            }
+
+            updateSelectedSeatInfo();
+        }
+
+        function updateSelectedSeatInfo() {
+            const container = document.getElementById('seats-container');
+            const allSeatEls = container.children;
+
+            for (let i = 0; i < allSeatEls.length; i++) {
+                if (allSeatEls[i].classList.contains('seat-available')) {
+                    if (selectedSeatIndices.includes(i)) {
+                        allSeatEls[i].classList.add('seat-selected');
+                    } else {
+                        allSeatEls[i].classList.remove('seat-selected');
+                    }
+                }
+            }
+
+            const infoEl = document.getElementById('info-selected-seat');
+            const payBtn = document.getElementById('btn-pay');
+
+            if (selectedSeatIndices.length === 0) {
+                infoEl.innerText = `없음 (0/${selectedTicketQty}매)`;
+                payBtn.disabled = true;
+            } else {
+                const seatNames = selectedSeatIndices.map(idx => `${Math.floor(idx / 10) + 1}열 ${ (idx % 10) + 1 }번`).join(', ');
+                infoEl.innerText = `${seatNames} (${selectedSeatIndices.length}/${selectedTicketQty}매)`;
+                payBtn.disabled = (selectedSeatIndices.length !== selectedTicketQty);
+            }
+        }
+
+        function completeSeatBooking() {
+            if (selectedSeatIndices.length !== selectedTicketQty) return;
+
+            // Random Anti-Macro Trap Check
+            const diff = document.getElementById('diff-select').value;
+            if (diff === 'hell' || Math.random() < 0.35) {
+                triggerSecondaryAntiMacroTrap();
+                return;
+            }
+
+            finalizeBookingProcess();
+        }
+
+        function triggerSecondaryAntiMacroTrap() {
+            modalSecondaryCaptcha = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('modal-captcha-code').innerText = `보안코드: ${modalSecondaryCaptcha}`;
+            document.getElementById('modal-captcha-input').value = "";
+            document.getElementById('modal-captcha-container').classList.remove('hidden');
+
+            showCustomModal("🤖 매크로 방지 2차 확인", "매크로 입력 방지를 위해 아래 4자리 숫자를 정확히 입력하세요.", "🚨", () => {
+                const inputVal = document.getElementById('modal-captcha-input').value.trim();
+                document.getElementById('modal-captcha-container').classList.add('hidden');
+                if (inputVal === modalSecondaryCaptcha) {
+                    playSound('success');
+                    finalizeBookingProcess();
+                } else {
+                    playSound('error');
+                    showCustomModal("인증 실패", "매크로 입력 방지 번호가 틀렸습니다.", "❌");
+                }
+            });
+        }
+
+        function finalizeBookingProcess() {
+            playSound('success');
+            clearInterval(gameInterval);
+            clearInterval(seatDisappearInterval);
+            seatTimeMs = Date.now() - seatStartTime;
+
+            const seatNames = selectedSeatIndices.map(idx => `${Math.floor(idx / 10) + 1}열 ${(idx % 10) + 1}번`).join(', ');
+
+            lastSuccessfulBookingDetail = {
+                section: selectedSectionName,
+                seats: seatNames,
+                qty: selectedTicketQty,
+                date: selectedMatch ? selectedMatch.date : '2026.10.24 (토) 14:00',
+                stadium: selectedMatch ? selectedMatch.stadium : '광주-기아 챔피언스 필드'
+            };
+
+            document.getElementById('step-3').classList.add('hidden');
+            document.getElementById('step-4').classList.remove('hidden');
+
+            const badgeBox = document.getElementById('result-badge-box');
+            badgeBox.className = "inline-block px-6 py-2 rounded-full font-black text-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+            badgeBox.innerText = "🎉 티켓 예매 성공!";
+
+            document.getElementById('res-match-name').innerText = selectedMatch ? selectedMatch.title : 'KIA TIGERS MATCH';
+            document.getElementById('res-date').innerText = lastSuccessfulBookingDetail.date;
+            document.getElementById('res-qty').innerText = `${selectedTicketQty}매`;
+            document.getElementById('res-seat').innerText = `[${selectedSectionName}] ${seatNames}`;
+
+            document.getElementById('res-clock-time').innerText = `${clockClickDiffMs >= 0 ? '+' : ''}${clockClickDiffMs} ms`;
+            document.getElementById('res-captcha-time').innerText = `${(captchaTimeMs / 1000).toFixed(2)}초`;
+            document.getElementById('res-seat-time').innerText = `${(seatTimeMs / 1000).toFixed(2)}초`;
+
+            document.getElementById('kakao-retrigger-container').classList.remove('hidden');
+            showKakaoNotification();
+        }
+
+        function showKakaoNotification() {
+            if (!lastSuccessfulBookingDetail) return;
+            playSound('success');
+
+            const notice = document.getElementById('kakaotalk-notice');
+            const msgBody = document.getElementById('kakao-msg-body');
+
+            msgBody.innerHTML = `
+                <strong class="text-red-700 font-extrabold">[${lastSuccessfulBookingDetail.section}] ${lastSuccessfulBookingDetail.seats}</strong> 좌석에 
+                <span class="text-slate-900 font-bold">${lastSuccessfulBookingDetail.date}</span> 시간에 
+                <span class="text-slate-900 font-bold">${lastSuccessfulBookingDetail.stadium}</span> 장소 티켓 예매가 성공적으로 완료되었습니다!
+            `;
+
+            notice.classList.remove('hidden');
+            notice.classList.add('kakao-notice-active');
+        }
+
+        function closeKakaoNotice() {
+            playSound('click');
+            const notice = document.getElementById('kakaotalk-notice');
+            notice.classList.add('hidden');
+        }
+
+        // Custom Modal Logic
+        function showCustomModal(title, msg, icon = "⚠️", callback = null) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            document.getElementById('modal-icon').innerText = icon;
+            modalCallback = callback;
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        function closeCustomModal() {
+            playSound('click');
+            document.getElementById('custom-modal').classList.add('hidden');
+            if (modalCallback) {
+                const cb = modalCallback;
+                modalCallback = null;
+                cb();
+            }
+        }
+
+        function backToStep0() {
+            playSound('click');
+            resetToStep0();
+        }
+
+        function resetToStep0() {
+            clearInterval(step2Interval);
+            clearInterval(queueInterval);
+            clearInterval(gameInterval);
+            clearInterval(seatDisappearInterval);
+
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('step-2').classList.add('hidden');
+            document.getElementById('step-2-5').classList.add('hidden');
+            document.getElementById('step-3').classList.add('hidden');
+            document.getElementById('step-4').classList.add('hidden');
+            document.getElementById('step-0').classList.remove('hidden');
+        }
+
+        function resetApplication() {
+            playSound('click');
+            resetToStep0();
+        }
+
+        // 5-Second Entry Queue Trigger before Step 1
+        function start5SecQueue(matchId) {
+            playSound('click');
+            selectedMatch = matchSchedule.find(m => m.id === matchId);
+
+            const modal = document.getElementById('modal-5s-delay');
+            const numEl = document.getElementById('countdown-5s-num');
+            modal.classList.remove('hidden');
+
+            let count = 5;
+            numEl.innerText = count;
+
+            const countdownInterval = setInterval(() => {
+                count--;
+                if (count <= 0) {
+                    clearInterval(countdownInterval);
+                    modal.classList.add('hidden');
+                    chooseMatch();
+                } else {
+                    numEl.innerText = count;
+                    playSound('click');
+                }
+            }, 1000);
+        }
+
+        function chooseMatch() {
+            document.getElementById('step-0').classList.add('hidden');
+            document.getElementById('step-1').classList.remove('hidden');
+
+            const summaryBox = document.getElementById('selected-match-summary');
+            summaryBox.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">🐯</span>
+                    <div>
+                        <h3 class="font-black text-white text-base">${selectedMatch.title} (${selectedMatch.home} vs ${selectedMatch.away})</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">🏟️ ${selectedMatch.stadium} | 🗓️ ${selectedMatch.date}</p>
+                    </div>
+                </div>
+                <span class="bg-red-600/20 text-red-400 text-xs font-bold px-3 py-1 rounded-full border border-red-500/30">
+                    KIA TIGERS TICKET
+                </span>
+            `;
+
+            resetClockStep();
+        }
+
+        // Navyism Clock logic with 10-minute member offset
+        function startServerClock() {
+            clearInterval(serverClockInterval);
+            serverClockInterval = setInterval(() => {
+                serverTime.setMilliseconds(serverTime.getMilliseconds() + 40);
+
+                const hh = String(serverTime.getHours()).padStart(2, '0');
+                const mm = String(serverTime.getMinutes()).padStart(2, '0');
+                const ss = String(serverTime.getSeconds()).padStart(2, '0');
+                const ms = String(Math.floor(serverTime.getMilliseconds() / 10)).padStart(2, '0');
+
+                const clockStr = `${hh}:${mm}:${ss}.${ms}`;
+                document.getElementById('server-clock').innerText = clockStr;
+
+                const bigClock = document.getElementById('big-server-clock');
+                if (bigClock) bigClock.innerText = clockStr;
+
+                if (serverTime.getMinutes() === (isPaidMember ? 50 : 0) && serverTime.getSeconds() >= 6) {
+                    serverTime.setHours(13, isPaidMember ? 49 : 59, 53, 0);
+                }
+            }, 40);
+        }
+
+        let serverTime = new Date();
+        serverTime.setHours(13, 59, 53, 0);
+
+        function resetClockStep() {
+            if (isPaidMember) {
+                serverTime.setHours(13, 49, 53, 0); // 10 minutes early!
+                document.getElementById('target-time-label').innerText = "13:50:00.00 (10분 조기 오픈)";
+                document.getElementById('big-clock-sublabel').innerText = "Target Open Time: 13:50:00.00 (멤버십 10분 조기 예매)";
+                document.getElementById('clock-label').innerText = "서버 시계 (멤버십: 10분 조기)";
+            } else {
+                serverTime.setHours(13, 59, 53, 0);
+                document.getElementById('target-time-label').innerText = "14:00:00.00";
+                document.getElementById('big-clock-sublabel').innerText = "Target Open Time: 14:00:00.00";
+                document.getElementById('clock-label').innerText = "서버 시계 (일반: 10분 지연)";
+            }
+
+            const btn = document.getElementById('btn-start-booking');
+            const txt = document.getElementById('booking-btn-text');
+            const feedback = document.getElementById('clock-click-feedback');
+
+            btn.disabled = false;
+            txt.innerText = isPaidMember ? "⚡ 13:50:00.00 조기 예매 클릭!" : "⚡ 14:00:00.00 정각에 클릭하세요!";
+            feedback.innerText = "";
+        }
+
+        // Toss Bank Payment Functions
+        function openTossMembershipModal() {
+            playSound('click');
+            tossPinEntered = "";
+            updateTossPinDots();
+            document.getElementById('modal-toss-bank').classList.remove('hidden');
+        }
+
+        function closeTossModal() {
+            playSound('click');
+            document.getElementById('modal-toss-bank').classList.add('hidden');
+        }
+
+        function pressTossPin(num) {
+            if (tossPinEntered.length < 6) {
+                tossPinEntered += num;
+                playSound('click');
+                updateTossPinDots();
+            }
+        }
+
+        function clearTossPin() {
+            tossPinEntered = "";
+            playSound('click');
+            updateTossPinDots();
+        }
+
+        function updateTossPinDots() {
+            for (let i = 1; i <= 6; i++) {
+                const dot = document.getElementById(`pin-${i}`);
+                if (i <= tossPinEntered.length) {
+                    dot.className = "w-4 h-4 rounded-full bg-blue-500 scale-110 transition";
+                } else {
+                    dot.className = "w-4 h-4 rounded-full bg-gray-700 transition";
+                }
+            }
+        }
+
+        function submitTossPayment() {
+            if (tossPinEntered.length < 6) {
+                playSound('error');
+                showCustomModal("토스뱅크 알림", "비밀번호 6자리를 모두 입력해주세요!", "💳");
+                return;
+            }
+
+            playSound('success');
+            isPaidMember = true;
+            closeTossModal();
+
+            document.getElementById('header-user-badge').className = "bg-red-600 text-white border border-red-400 text-[10px] font-black px-2.5 py-0.5 rounded-full animate-bounce";
+            document.getElementById('header-user-badge').innerText = "👑 챔피언스 정기 멤버십 (10분 조기 예매 권한)";
+
+            document.getElementById('membership-status-banner').className = "bg-red-950/40 border border-red-500/50 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center gap-3";
+            document.getElementById('membership-status-banner').innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">👑</span>
+                    <div class="text-xs">
+                        <h4 class="font-black text-red-400 text-sm">토스뱅크 9,900원 멤버십 가입 완료!</h4>
+                        <p class="text-slate-300 mt-0.5">일반 회원보다 <strong class="text-amber-300">10분 빠른 13:50:00 조기 예매</strong> 및 VIP석 전체 이용 가능합니다.</p>
+                    </div>
+                </div>
+            `;
+
+            showCustomModal("토스뱅크 결제 완료", "KIA 타이거즈 챔피언스 멤버십 결제가 완료되었습니다!\n(10분 조기 예매 혜택 적용 완료)", "🎉");
+        }
+
+        // Kakao Auth Functions
+        function openKakaoAuthModal() {
+            playSound('click');
+            document.getElementById('modal-kakao-auth').classList.remove('hidden');
+        }
+
+        function closeKakaoAuthModal() {
+            playSound('click');
+            document.getElementById('modal-kakao-auth').classList.add('hidden');
+        }
+
+        function confirmKakaoAuth() {
+            playSound('success');
+            isKakaoAuthed = true;
+            closeKakaoAuthModal();
+            document.getElementById('kakao-auth-status-text').innerText = "인증 완료 완료 ✅";
+            document.getElementById('btn-kakao-auth').className = "bg-emerald-500 text-slate-950 px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow";
+            showCustomModal("카카오 인증 성공", "카카오톡 본인인증이 완료되었습니다.", "✅");
+        }
+
+        // Seat Rendering Matrix with Non-Member Pre-Occupation logic
+        function renderSeatGrid(availableCount) {
+            const container = document.getElementById('seats-container');
+            container.innerHTML = '';
+            selectedSeatIndices = [];
+            document.getElementById('btn-pay').disabled = true;
+            document.getElementById('info-selected-seat').innerText = `없음 (0/${selectedTicketQty}매)`;
+
+            const totalSeats = 60;
+            const seats = [];
+
+            for (let i = 0; i < totalSeats; i++) {
+                const seat = document.createElement('div');
+                seat.className = 'aspect-square rounded bg-slate-800 seat-sold flex items-center justify-center text-[10px] text-slate-500 font-bold transition-all';
+                seat.dataset.index = i;
+                seat.innerText = i + 1;
+                container.appendChild(seat);
+                seats.push(seat);
+            }
+
+            // If user is NOT a paid member, paid members ALREADY booked 60%~80% of prime seats!
+            const occupiedByMembersCount = isPaidMember ? 0 : Math.floor(totalSeats * 0.65);
+            const occupiedIndices = new Set();
+
+            while (occupiedIndices.size < occupiedByMembersCount) {
+                occupiedIndices.add(Math.floor(Math.random() * totalSeats));
+            }
+
+            // Mark paid member occupied seats
+            occupiedIndices.forEach(idx => {
+                seats[idx].className = 'aspect-square rounded seat-member-occupied flex items-center justify-center text-[10px] text-purple-300 font-bold transition-all';
+                seats[idx].innerText = '👑';
+                seats[idx].onclick = () => {
+                    playSound('error');
+                    showCustomModal("👑 멤버십 선점석", "정기 멤버십 가입자가 10분 전 먼저 예매한 좌석입니다!\n(토스뱅크 9,900원 멤버십 가입 시 예매 가능)", "🔒");
+                };
+            });
+
+            // Set remaining available seats
+            const availableIndices = new Set();
+            while (availableIndices.size < Math.min(availableCount, totalSeats - occupiedByMembersCount)) {
+                const candidate = Math.floor(Math.random() * totalSeats);
+                if (!occupiedIndices.has(candidate)) {
+                    availableIndices.add(candidate);
+                }
+            }
+
+            availableIndices.forEach(idx => {
+                seats[idx].className = 'aspect-square rounded seat-available flex items-center justify-center text-[10px] text-white font-bold transition-all';
+                seats[idx].style.backgroundColor = selectedSectionColor;
+                seats[idx].onclick = () => pickSeat(idx);
+            });
+
+            document.getElementById('info-seat-count').innerText = `${availableIndices.size}석`;
+
+            // Rapid seat disappear speed (Harder when non-member)
+            const diff = document.getElementById('diff-select').value;
+            let disappearSpeed = diff === 'easy' ? 2000 : diff === 'normal' ? 1000 : diff === 'hard' ? 500 : 250;
+            if (!isPaidMember) disappearSpeed = Math.max(150, Math.floor(disappearSpeed * 0.6)); // Faster snapping!
+
+            clearInterval(seatDisappearInterval);
+            seatDisappearInterval = setInterval(() => {
+                const activeAvailable = container.querySelectorAll('.seat-available');
+                if (activeAvailable.length > 0) {
+                    const target = activeAvailable[Math.floor(Math.random() * activeAvailable.length)];
+                    target.className = 'aspect-square rounded bg-slate-800 seat-sold flex items-center justify-center text-[10px] text-slate-500 font-bold transition-all';
+                    target.style.backgroundColor = '';
+                    target.onclick = null;
+
+                    const targetIdx = parseInt(target.dataset.index);
+                    const selIdx = selectedSeatIndices.indexOf(targetIdx);
+                    if (selIdx !== -1) {
+                        selectedSeatIndices.splice(selIdx, 1);
+                        updateSelectedSeatInfo();
+                    }
+
+                    const remain = container.querySelectorAll('.seat-available').length;
+                    document.getElementById('info-seat-count').innerText = `${remain}석`;
+                }
+            }, disappearSpeed);
+        }
+    </script>
+</body>
+</html>
